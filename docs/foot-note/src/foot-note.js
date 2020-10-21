@@ -1,4 +1,4 @@
-﻿/* 
+/* 
 	Web Component: FootNote
 	
 	Custom Element: <foot-note></foot-note>
@@ -9,7 +9,7 @@
 	Author: Roland Dreger, www.rolanddreger.net
 	License: MIT
 
-	Date: 16 Sept. 2020
+	Date: 21 Okt. 2020
 */
 
 
@@ -20,9 +20,17 @@ const TEMPLATE_COMMENT = 'FootNote component template';
 const SHADOW_DOM_MODE = 'open';
 const TOGGLE_EVENT_NAME = 'footnote-on-toggle';
 const HIDE_EVENT_NAME = 'footnote-on-hide';
+const CALL_ARIA_LABEL = 'Call note';
+const MARKER_ARIA_LABEL = 'Marker note';
+const CLOSE_BUTTON_ARIA_LABEL = 'Close';
+
 
 class FootNote extends HTMLElement {
 
+	static get tag() {
+    return COMPONENT_TAG_NAME;
+	}
+	
 	static get observedAttributes() { 
 		return ['index', 'visible']; 
 	}
@@ -51,8 +59,9 @@ class FootNote extends HTMLElement {
 				cursor: pointer;
 				color: #000000;
 				color: var(--footnote-theme-color, #000000);
-				vertical-align: super; 
-				font-size: 0.8rem;
+				vertical-align: super;
+				vertical-align: var(--footnote-call-vertical-align, super); 
+				font-size: var(--footnote-call-font-size, 0.8rem);
 				text-decoration: none;
 			}
 			.call::before {
@@ -68,6 +77,7 @@ class FootNote extends HTMLElement {
 				font-weight: bolder;
 			}
 			.area {
+				visibility: hidden;
 				position: fixed;
 				bottom: 0;
 				left: 50%;
@@ -90,6 +100,7 @@ class FootNote extends HTMLElement {
 				font-size: var(--footnote-font-size, 1rem);
 				line-height: var(--footnote-line-heigth, 1.4);
 				background-color: #ffffff;
+				background-color: var(--footnote-area-color, #ffffff);
 				transition: all 0.4s ease-in-out;
 			}
 			@media (max-width: 30rem) {
@@ -99,6 +110,7 @@ class FootNote extends HTMLElement {
 				}
 			}
 			.visible {
+				visibility: visible;
 				margin-bottom: 0;
 				opacity: 1;
 			}
@@ -207,8 +219,8 @@ class FootNote extends HTMLElement {
 		button.classList.add('button');
 		button.classList.add('close');
 		button.setAttribute('part','button');
-		button.setAttribute('aria-label','Close');
-		button.setAttribute('title','Close');
+		button.setAttribute('aria-label',CLOSE_BUTTON_ARIA_LABEL);
+		button.setAttribute('title',CLOSE_BUTTON_ARIA_LABEL);
 		button.setAttribute('tabindex','-1');
 
 		/* Note area */
@@ -229,11 +241,11 @@ class FootNote extends HTMLElement {
 		return templateFragment;
 	}
 
-	static render() {
-
+	static render(targetNode) {
+		
 		/* Comment */
 		const comment = document.createComment(TEMPLATE_COMMENT);
-		document.body.appendChild(comment);
+		targetNode.appendChild(comment);
 		
 		/* Styles */
 		const styleFragment = FootNote.createStyles();
@@ -246,7 +258,7 @@ class FootNote extends HTMLElement {
 		templateElement.content.appendChild(templateFragment);
 		
 		/* Document */
-		const templateNode = document.body.appendChild(templateElement);
+		const templateNode = targetNode.appendChild(templateElement);
 
 		return templateNode;
 	}
@@ -261,10 +273,10 @@ class FootNote extends HTMLElement {
 		});
 		
 		/* Template */
-		const template = (document.getElementById(TEMPLATE_ID) || FootNote.render());
+		const template = (document.getElementById(TEMPLATE_ID) || FootNote.render(document.body));
 		root.appendChild(template.content.cloneNode(true));
 
-		/* Properties */
+		/* Note elements */
 		this.$area = root.querySelector('.area');
 		this.$call = root.querySelector('.call');
 		this.$marker = root.querySelector('.marker');
@@ -278,20 +290,23 @@ class FootNote extends HTMLElement {
 	}
 
 	connectedCallback() {
-		if(this.$call.isConnected) {
-			this.$call.addEventListener('click', this._toggle);
+		if(!this.isConnected) {
+			return false;
 		}
-		if(this.$button.isConnected) {
-			this.$button.addEventListener('click', this._hide);
+		if(this.$call && this.$call.isConnected) {
+			this.$call.addEventListener('click',this._toggle);
+		}
+		if(this.$button && this.$button.isConnected) {
+			this.$button.addEventListener('click',this._hide);
 		}
 	}
 
 	disconnectedCallback() {
 		if(this.$call) {
-			this.$call.removeEventListener('click', this._toggle);
+			this.$call.removeEventListener('click',this._toggle);
 		}
 		if(this.$button) {
-			this.$button.removeEventListener('click', this._hide);
+			this.$button.removeEventListener('click',this._hide);
 		}
 	}
 	
@@ -304,9 +319,9 @@ class FootNote extends HTMLElement {
 			case 'index':
 				this.$call.textContent = newValue;
 				this.$call.setAttribute('href','#' + COMPONENT_TAG_NAME + '-' + newValue);
-				this.$call.setAttribute('aria-label','Call note ' + newValue);
+				this.$call.setAttribute('aria-label',CALL_ARIA_LABEL + ' ' + newValue);
 				this.$marker.textContent = newValue;
-				this.$marker.setAttribute('aria-label','Marker note ' + newValue);
+				this.$marker.setAttribute('aria-label',MARKER_ARIA_LABEL + ' ' + newValue);
 				break;
 			/* Attribute: visible */
 			case 'visible':
@@ -314,18 +329,18 @@ class FootNote extends HTMLElement {
 				if(this.visible) {
 					this._wasFocused = document.activeElement;
 					this.$area.classList.add('visible');
-					this.$area.setAttribute('aria-hidden', "false");
+					this.$area.setAttribute('aria-hidden',"false");
 					this.$button.setAttribute('tabindex','0');
-					document.addEventListener('keydown', this.__watchEsc);
+					document.addEventListener('keydown',this.__watchEsc);
 					this.$area.focus();
 				} else {
 					if(this._wasFocused && this._wasFocused.focus) {
 						this._wasFocused.focus();
 					}
 					this.$area.classList.remove('visible');
-					this.$area.setAttribute('aria-hidden', "true");
+					this.$area.setAttribute('aria-hidden',"true");
 					this.$button.setAttribute('tabindex','-1');
-					document.removeEventListener('keydown', this.__watchEsc);
+					document.removeEventListener('keydown',this.__watchEsc);
 				}
 				break;
 		}
@@ -351,7 +366,7 @@ class FootNote extends HTMLElement {
 		}
 	}
 
-	/* Methods */
+	/* Methods (Prototype) */
 	toggle(event) {
 		if(event && event instanceof Event) {
 			event.preventDefault();
@@ -405,7 +420,7 @@ class FootNote extends HTMLElement {
 		if(!event || !(event instanceof Event)) {
 			return false;
 		}
-		if(event.key === 'Escape') {
+		if(event.key === 'Escape' || event.key === 'Esc') {
 			this.hide();
 		}
 	}
