@@ -1,4 +1,4 @@
-﻿<html lang="en">
+<html lang="en">
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,11 +11,15 @@
 			}
 			body { 
 				--footnote-theme-color: teal;
+				--footnote-call-vertical-align: super;
+				--footnote-call-font-size: 0.8rem;
+				--footnote-area-color: white;
 				--footnote-max-width: 58rem;
 				--footnote-line-heigth: 1.4;
 				--footnote-font-size: 1rem;
 				font-size: 1.3em;
 				font-family: Vollkorn, serif;
+				counter-reset: foot-note;
 			}
 			.container { 
 				max-width: 55rem;
@@ -25,9 +29,13 @@
 			/* Custom styles */
 			foot-note::part(call) {
 				/* Footnote call */
+				padding: 0.2em 0.4em;
+				margin-left: -0.4em;
+				margin-right: -0.4em;
 			}
 			foot-note::part(area) {
 				/* Footnote area */
+				z-index: 1;
 			}
 			foot-note::part(marker) {
 				/* Footnote marker */
@@ -38,9 +46,9 @@
 			foot-note::part(button) {
 				/* Close button */
 			}
-			section {
+			/* section {
 				counter-reset: foot-note;
-			}
+			} */
 			/* Fallback */
 			foot-note:not(:defined) {
 				margin-left: 0.5rem;
