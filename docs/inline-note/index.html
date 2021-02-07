@@ -1,0 +1,97 @@
+﻿<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>InlineNote Web Component</title>
+		<style>
+			*,
+			*::before,
+			*::after {
+				box-sizing: border-box;
+			}
+			body { 
+				--inline-note-theme-color: teal;
+				--inline-note-font-color: #000000;
+				--inline-note-call-font-color: teal;
+				--inline-note-area-color: #f2f2f2; 
+				--inline-note-vertical-unit: 0;
+				--inline-note-border-radius: 0.2rem;
+				--inline-note-call-vertical-align: baseline;
+				--inline-note-call-font-size: inherit;
+				--inline-note-dark-theme-color: mediumturquoise;
+				--inline-note-dark-area-color: #464646;
+				--inline-note-dark-font-color: #fffff;
+				--inline-note-dark-call-font-color: mediumturquoise;
+				--inline-note-call-opening-bracket: "(";
+				--inline-note-call-closing-bracket: ")";
+				font-size: 1.3em;
+				font-family: Vollkorn, serif;
+			}
+			.container { 
+				max-width: 55rem;
+				padding: 40px;
+				margin: auto;
+			}
+			/* Custom styles */
+			inline-note::part(call) {
+				/* Inline note call */
+			}
+			inline-note::part(call):hover,
+			inline-note::part(call):focus {
+				/* text-decoration: underline solid 1px; */
+			}
+			inline-note::part(area) {
+				/* Inline note area */
+			}
+			inline-note::part(element) {
+				/* Inline note element */
+			}
+			inline-note::part(close-button) {
+				/* Close button */
+			}
+			@media (prefers-color-scheme: dark) {
+				body {
+					color: #ffffff;
+					background-color: #000000;
+				}
+			}
+			/* Fallback */
+			inline-note:not(:defined) {
+				color: #000000;
+				color: var(--inline-note-theme-color, #000000);
+			}
+			inline-note:not(:defined)::before {
+				padding-right: 0.5rem;
+				color: #000000;
+				color: var(--inline-note-theme-color, #000000);
+				text-decoration: none;
+				counter-increment: inline-note;                  
+  			content: "(→"; /* attr(index) */
+			}
+			inline-note:not(:defined)::after {             
+  			content: ")";
+			}
+		</style>
+	</head>
+<body>
+	<div class="container">
+		<section>
+			<p>[...]</p>
+		</section>
+		<section>
+			<h2>Quotation</h2>
+			<p>In their research on footnotes in scholarly journals in the field of communication, Michael Bugeja and Daniela V. Dimitrova have found that citations to online sources have a rate of decay (as cited pages are taken down), which they call a "half-life", <inline-note index="Begeja et al., 2010">Bugeja, Michael and Daniela V. Dimitrova (2010). Vanishing Act: The Erosion of Online Footnotes and Implications for Scholarship in the Digital Age. Duluth, Minnesota: Litwin Books. ISBN 978-1-936117-14-7</inline-note> that renders footnotes in those journals less useful for scholarship over time.</p>
+			<p>Other experts have found that published replications do not have as many citations as original publications. <inline-note index="Hubbard et al., 1994">Raymond Hubbard and J. Scott Armstrong (1994). "Replications and Extensions in Marketing: Rarely Published But Quite Contrary" (PDF). International Journal of Research in Marketing. 11 (3): 233–248. doi:10.1016/0167-8116(94)90003-5.</inline-note></p>
+			<p>Another important issue is citation errors, which often occur due to carelessness on either the researcher or journal editor's part in the publication procedure. Experts have found that simple precautions, such as consulting the author of a cited source about proper citations, reduce the likelihood of citation errors and thus increase the quality of research. <inline-note index="Wright et al., 2008">Wright, Malcolm; Armstrong, J. Scott (2008). "The Ombudsman: Verification of Citations: Fawlty Towers of Knowledge?". Interfaces. 38 (2): 125–139. doi:10.1287/inte.1070.0317. eISSN 1526-551X. ISSN 0092-2102. JSTOR 25062982. OCLC 5582131729. SSRN 1941335.</inline-note></p>
+		</section>
+		<section>
+				<p>[...]</p>
+		</section>
+		<section>
+			<h3>Source:</h3> 
+			<p><a href="https://en.wikipedia.org/wiki/Citation">Note (typography)</a></p>
+		</section>
+	</div>
+	<script src="index.js" type="module"></script>
+</body>
+</html>
