@@ -151,23 +151,21 @@ class InlineNote extends HTMLElement {
 				padding: var(--inline-note-vertical-unit, 0.1rem) calc(2 * 0.4rem);
 				background-color: var(--inline-note-area-color, #f2f2f2);
 			}
-			right-pointing-triangle {
-				display: inline-block;
-				vertical-align: middle;
-				width: 0; 
-				height: 0; 
-				margin-left: -0.6rem;
-				transform: translate(0.3rem, -0.05rem);
-				border-top: 0.6rem solid transparent;
-				border-bottom: 0.6rem solid transparent;
-				border-left: 0.6rem solid var(--inline-note-theme-color, #000000);
+			.element::before {
+				content: "";
+				background-color:  var(--inline-note-theme-color, #000000);
+				padding-left: calc(2 * 0.4rem);
+				clip-path: polygon(0 0, 0 100%, 100% 50%);
+				margin-right: 0.4rem;
+				margin-left: -1.3rem;
 			}
 			.button {	
 				display: inline-block;
 				overflow: hidden;
 				vertical-align: middle;
 				padding: calc(2 * 0.4rem) 2rem;
-				transform: translateY(-0.05rem);
+				margin-top: -0.6rem;
+				margin-bottom: -0.5rem;
 				border: none;
 				text-decoration: none;
 				cursor: pointer;
@@ -213,8 +211,8 @@ class InlineNote extends HTMLElement {
 					background-color: #000000;
 					background-color: var(--inline-note-dark-area-color, #000000);
 				}
-				right-pointing-triangle {
-					border-left: 0.6rem solid var(--inline-note-dark-theme-color, #ffffff);
+				.element::before {
+					background-color:  var(--inline-note-dark-theme-color, #ffffff);
 				}
 				.close {
 					background-image: url("${getIcon("eyeOff")(DARK_ICON_COLOR)}");
@@ -252,9 +250,6 @@ class InlineNote extends HTMLElement {
 		element.setAttribute('part', 'element');
 		element.appendChild(slot);
 
-		/* Arrow element */
-		const triangle = document.createElement('right-pointing-triangle');
-
 		/* Close button */
 		const closeButton = document.createElement('button');
 		closeButton.setAttribute('id', 'close-button');
@@ -270,7 +265,6 @@ class InlineNote extends HTMLElement {
 		area.setAttribute('part', 'area');
 		area.setAttribute('role', 'doc-footnote');
 		area.setAttribute('aria-hidden', 'true');
-		area.appendChild(triangle);
 		area.appendChild(element);
 		area.appendChild(closeButton);
 		

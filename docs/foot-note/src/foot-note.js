@@ -1,4 +1,4 @@
-/* 
+﻿/* 
 	Web Component: FootNote
 	
 	Custom Element: <foot-note></foot-note>
@@ -9,7 +9,7 @@
 	Author: Roland Dreger, www.rolanddreger.net
 	License: MIT
 
-	Date: 28 Jan. 2021
+	Date: 7 Feb. 2021
 */
 
 /* Configuration */
@@ -17,8 +17,6 @@ const TEMPLATE_ID = 'foot-note-template';
 const TEMPLATE_COMMENT = 'FootNote component template';
 const SHADOW_DOM_MODE = 'open';
 const VISIBLE_CHANGED_EVENT_NAME = 'visible-changed';
-const CALL_OPENING_BRACKET = '[';
-const CALL_CLOSING_BRACKET = ']';
 const FALLBACK_LANG = "en";
 
 /* Internal identifier */
@@ -30,6 +28,8 @@ const handleClickCloseElement = Symbol('handleClickCloseElement');
 const handleKeydownDocument = Symbol('handleKeydownDocument');
 const documentLang = Symbol('documentLang');
 const translate = Symbol('translate');
+const clearUpID = Symbol('clearUpID');
+
 
 class FootNote extends HTMLElement {
 	
@@ -90,10 +90,10 @@ class FootNote extends HTMLElement {
 				text-decoration: none;
 			}
 			.call::before {
-				content: "${CALL_OPENING_BRACKET}";
+				content: var(--footnote-call-opening-bracket, "[");
 			}
 			.call::after {
-				content: "${CALL_CLOSING_BRACKET}";
+				content: var(--footnote-call-closing-bracket, "]");
 			}
 			.call:hover {
 				text-decoration: underline;
@@ -352,22 +352,26 @@ class FootNote extends HTMLElement {
 		if(oldValue === newValue) {
 			return true;
 		}
-		let tagName;
+
 		let language;
-		let hrefIndexSuffix;
-		let ariaIndexSuffix;
+		let indexSuffix;
+		let callElementAriaLabelValue;
+		let markerElementAriaLabelValue;
+
 		switch(name) {
 			/* Attribute: index */
 			case 'index':
-				tagName = ((this.tagName && this.tagName.toLowerCase()) || "");
 				language = (this.lang || this[documentLang]);
-				hrefIndexSuffix = ((newValue && `-${newValue}`) || "");
-				ariaIndexSuffix = ((newValue && ` ${newValue}`) || "");
+				indexSuffix = (newValue || "");
+				let tagName = (this.tagName || "");
+				let hrefValue = '#' + this[clearUpID](tagName + "-" + indexSuffix);
+				this.callElement.setAttribute('href', hrefValue);
+				callElementAriaLabelValue = this[translate]("callElementAriaLabel", language) + ": " + indexSuffix;
+				this.callElement.setAttribute('aria-label', callElementAriaLabelValue);
 				this.callElement.textContent = (newValue || "");
-				this.callElement.setAttribute('href', '#' + tagName + hrefIndexSuffix);
-				this.callElement.setAttribute('aria-label', this[translate]("callElementAriaLabel", language) + ariaIndexSuffix);
 				this.markerElement.textContent = (newValue || "");
-				this.markerElement.setAttribute('aria-label', this[translate]("markerElementAriaLabel", language) + ariaIndexSuffix);
+				markerElementAriaLabelValue = this[translate]("markerElementAriaLabel", language) + ": " + indexSuffix;
+				this.markerElement.setAttribute('aria-label', markerElementAriaLabelValue);
 				break;
 			/* Attribute: visible */
 			case 'visible':
@@ -387,9 +391,11 @@ class FootNote extends HTMLElement {
 			/* Attribute: lang */
 			case 'lang':
 				language = (newValue || this[documentLang]);
-				ariaIndexSuffix = ((this.index && ` ${this.index}`) || "");
-				this.callElement.setAttribute('aria-label', this[translate]("callElementAriaLabel", language) + ariaIndexSuffix);
-				this.markerElement.setAttribute('aria-label', this[translate]("markerElementAriaLabel",language) + ariaIndexSuffix);
+				indexSuffix = (this.index || "");
+				callElementAriaLabelValue = this[translate]("callElementAriaLabel", language) + ": " + indexSuffix;
+				this.callElement.setAttribute('aria-label', callElementAriaLabelValue);
+				markerElementAriaLabelValue = this[translate]("markerElementAriaLabel", language) + ": " + indexSuffix;
+				this.markerElement.setAttribute('aria-label', markerElementAriaLabelValue);
 				this.closeElement.setAttribute('aria-label', this[translate]("closeButtonAriaLabel", language));
 				this.closeElement.setAttribute('title', this[translate]("closeButtonAriaLabel", language));
 				break;
@@ -460,8 +466,8 @@ class FootNote extends HTMLElement {
 	}
 
 	hideOthers() {
-		const openNotes = document.querySelectorAll(this.tagName + '[visible]');
-		openNotes.forEach(note => {
+		const visibleNotes = document.querySelectorAll(this.tagName + '[visible]');
+		visibleNotes.forEach(note => {
 			if(note === this) {
 				return false;
 			}
@@ -470,8 +476,8 @@ class FootNote extends HTMLElement {
 	}
 
 	hideAll() {
-		const openNotes = document.querySelectorAll(this.tagName + '[visible]');
-		openNotes.forEach(note => {
+		const visibleNotes = document.querySelectorAll(this.tagName + '[visible]');
+		visibleNotes.forEach(note => {
 			note.removeAttribute('visible');
 		});
 	}
@@ -509,6 +515,7 @@ class FootNote extends HTMLElement {
 		if(!lang || typeof lang !== "string") { 
 			throw new TypeError(`Argument [lang] must be a string: ${typeof lang}`); 
 		}
+
 		const languageCodes = {
 			'en': 'en-US',
 			'en-us': 'en-US',
@@ -551,6 +558,7 @@ class FootNote extends HTMLElement {
 			'zh-hant-tw': 'zh-TW',
 			'zh-hant': 'zh-TW'
 		};
+		
 		const languageCodesProxy = new Proxy(languageCodes, {
 			get(target, code) {
 				code = code.toLowerCase();
@@ -561,6 +569,7 @@ class FootNote extends HTMLElement {
 				}
 			}
 		});
+		
 		const translationsProxy = new Proxy(FootNote.translations, {
 			get(target, code) {
 				if(target.hasOwnProperty(code)) {
@@ -570,11 +579,63 @@ class FootNote extends HTMLElement {
 				}
 			}
 		});
+		
 		const translation = translationsProxy[languageCodesProxy[lang]][term];
 		if(!translation) {
 			throw new Error(`No translation available: ${term}`);
 		}
+
 		return translation;
+	}
+
+	[clearUpID](input) {
+		if(typeof input !== "string") { 
+			throw new TypeError(`Argument [input] must be a string: ${typeof input}`); 
+		}
+
+		const SEPARATOR = "-";
+		
+		const cutWhitespaceRegExp = new RegExp("(^\\s+)|(\\s+$)", "ig");
+		const trimWhitespaceRegExp = new RegExp("\\s+", "ig");
+		const forbiddenCharsRegExp = new RegExp("[^a-z0-9 \\-]", "ig");
+		
+		let output = input.toLowerCase();
+		
+		/* Replace special characters */
+		output = output.replace(/[Ä]/g, "Ae");
+		output = output.replace(/[ä]/g, "ae");
+		output = output.replace(/[Ö]/g, "Oe");
+		output = output.replace(/[ö]/g, "oe");
+		output = output.replace(/[Ü]/g, "Ue");
+		output = output.replace(/[ü]/g, "ue");
+		output = output.replace(/[ß]/gi, "ss");
+		output = output.replace(/[ẞ]/gi, "SS");
+		output = output.replace(/[áàâåāąăæ]/gi, "a");
+		output = output.replace(/[çćčċ]/gi, "c");
+		output = output.replace(/[ďđ]/gi, "d");
+		output = output.replace(/[éèêëęēĕėě]/gi, "e");
+		output = output.replace(/[ģĝğġ]/gi, "g");
+		output = output.replace(/[ĥħ]/gi, "h");
+		output = output.replace(/[íìîïīĩĭį]/gi, "i");
+		output = output.replace(/[ĵ]/gi, "j");
+		output = output.replace(/[ķ]/gi, "k");
+		output = output.replace(/[łĺļľ]/gi, "l");
+		output = output.replace(/[ñńňņŋ]/gi, "n");
+		output = output.replace(/[óòôōŏőøœ]/gi, "o");
+		output = output.replace(/[ŕřŗ]/gi, "r");
+		output = output.replace(/[śšŝşș]/gi, "s");
+		output = output.replace(/[ţțťŧ]/gi, "t");
+		output = output.replace(/[úùûůūųũŭű]/gi, "u");
+		output = output.replace(/[ŵ]/gi, "w");
+		output = output.replace(/[ÿýŷ]/gi, "y");
+		output = output.replace(/[źżž]/gi, "z");
+		output = output.replace(forbiddenCharsRegExp, "");
+		
+		/* Whitespace */
+		output = output.replace(cutWhitespaceRegExp, "");
+		output = output.replace(trimWhitespaceRegExp, SEPARATOR);
+		
+		return output;
 	}
 }
 
