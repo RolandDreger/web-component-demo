@@ -239,15 +239,18 @@ class InlineNote extends HTMLElement {
 		call.classList.add('call');
 		call.setAttribute('part', 'call');
 		call.setAttribute('role', 'doc-noteref');
+		call.setAttribute('aria-controls', 'element');
 		
 		/* Slot */
 		const slot = document.createElement('slot');
 		
 		/* Note element */
-		const element = document.createElement('cite');
+		const element = document.createElement('note-element');
 		element.setAttribute('id', 'element');
 		element.classList.add('element');
 		element.setAttribute('part', 'element');
+		element.setAttribute('role', 'region');
+		element.setAttribute('aria-live', 'polite');
 		element.appendChild(slot);
 
 		/* Close button */
@@ -259,7 +262,7 @@ class InlineNote extends HTMLElement {
 		closeButton.setAttribute('tabindex', '-1');
 
 		/* Note area */
-		const area = document.createElement('ins');
+		const area = document.createElement('note-area');
 		area.setAttribute('id', 'area');
 		area.classList.add('area');
 		area.setAttribute('part', 'area');
