@@ -1,4 +1,5 @@
 ﻿import FootNote from './src/foot-note.js';
+import NoteList from './../note-list/src/note-list.js';
 
 (function() {
 	
@@ -14,9 +15,11 @@
 	
 	/* Define <foot-note> element */
 	window.customElements.define('foot-note', FootNote);
+	window.customElements.define('note-list', NoteList);
 
 	const definePromiseArray = [
-		customElements.whenDefined('foot-note')
+		customElements.whenDefined('foot-note'),
+		customElements.whenDefined('note-list')
 	];
 
 	Promise.all(definePromiseArray)
@@ -32,12 +35,17 @@
 		});
 		
 		/* Add Event Listener (optional) */
+		/* Notes */
 		footnotes.forEach((note, index) => {
 			note.addEventListener('visible-changed', (event) => {
 				console.log(`Footnote ${note.getAttribute('index')}: visible = ${event.detail.visible}`);
 			}, false);
 		});
-		
+		/* Note list */
+		document.addEventListener('update-done', (event) => {
+			console.log(`Update done`, event.detail);
+		}, false);
+
 	})
 	.catch(error => {
 		console.error(error);

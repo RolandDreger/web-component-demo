@@ -1,4 +1,5 @@
 ﻿import InlineNote from './src/inline-note.js';
+import NoteList from './../note-list/src/note-list.js';
 
 (function() {
 	
@@ -14,9 +15,11 @@
 	
 	/* Define <inline-note> element */
 	window.customElements.define('inline-note', InlineNote);
+	window.customElements.define('note-list', NoteList);
 
 	const definePromiseArray = [
-		customElements.whenDefined('inline-note')
+		customElements.whenDefined('inline-note'),
+		customElements.whenDefined('note-list')
 	];
 
 	Promise.all(definePromiseArray)
@@ -32,11 +35,16 @@
 		});
 		
 		/* Add Event Listener (optional) */
+		/* Notes */
 		inlineNotes.forEach((note, index) => {
 			note.addEventListener('visible-changed', (event) => {
 				console.log(`Inline note ${note.getAttribute('index')}: visible = ${event.detail.visible}`);
 			}, false);
 		});
+		/* Note list */
+		document.addEventListener('update-done', (event) => {
+			console.log(`Update done`, event.detail);
+		}, false);
 		
 	})
 	.catch(error => {
