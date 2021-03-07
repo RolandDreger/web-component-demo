@@ -9,7 +9,7 @@
 	Author: Roland Dreger, www.rolanddreger.net
 	License: MIT
 
-	Date: 21 Feb. 2021
+	Date: 5 Mar. 2021
 */
 
 /* Configuration */
@@ -22,14 +22,24 @@ const FALLBACK_LANG = "en";
 const SORT_OPTIONS = {
 	ignorePunctuation: true
 };
+const MUTATION_OBSERVER_DELAY = 300;
+const MUTATION_OBSERVER_OPTIONS = { 
+	attributes: true, 
+	childList: true, 
+	subtree: true, 
+	attributeFilter: ['id', 'index', 'lang'] 
+};
 
 
 /* Internal identifier */
 const isInternal = Symbol('isInternal');
 const getDebounceProxy = Symbol('getDebounceProxy');
 const getInternalProxy = Symbol('getInternalProxy');
+const mutationObserver = Symbol('mutationObserver');
+const mutationHandler = Symbol('mutationHandler');
 const documentLang = Symbol('documentLang');
 const translate = Symbol('translate');
+const emitEvent = Symbol('emitEvent');
 const getID = Symbol('getID');
 
 
@@ -62,8 +72,8 @@ class NoteList extends HTMLElement {
 				contain: content;
 				display: block;
 				font-family: inherit;
-				color: #000000;
-				color: var(--note-list-font-color, #000000);
+				color: inherit;
+				color: var(--note-list-font-color, inherit);
 			}
 			:host([hidden]) {
 				display: none;
@@ -186,10 +196,17 @@ class NoteList extends HTMLElement {
 		}
 		/* Set up */
 		this.update();
+		
+		/* MutationObserver */
+		this[mutationObserver] = new MutationObserver(this[mutationHandler].bind(this)); 
+		setTimeout(() => {
+			this[mutationObserver].observe(document.body, MUTATION_OBSERVER_OPTIONS);
+		}, MUTATION_OBSERVER_DELAY);
 	}
 
 	disconnectedCallback() {
 		/* Clean up */
+		this[mutationObserver].disconnect();
 	}
 	
 	attributeChangedCallback(name, oldValue, newValue) {
@@ -276,31 +293,26 @@ class NoteList extends HTMLElement {
 			document.body.getAttribute("lang") ||
 			document.documentElement.getAttribute("xml:lang") || 
 			document.documentElement.getAttribute("lang") || 
+			window.navigator.language ||
 			FALLBACK_LANG
 		);
 	}
 
 	/* Methods (Prototype) */
 	update() {
-		let detailObj = {};
+		let eventDetailObj = {};
 		try {
 			const result = this.build();
-			detailObj['status'] = 'OK';
-			detailObj['result'] = result;
+			eventDetailObj['status'] = 'OK';
+			eventDetailObj['result'] = result;
 		} catch(error) {
-			detailObj['status'] = 'ERROR';
-			detailObj['error'] = error;
+			eventDetailObj['status'] = 'ERROR';
+			eventDetailObj['error'] = error;
 		} finally {
-			const updateEvent = new CustomEvent(
-				UPDATE_DONE_EVENT_NAME, 
-				{ 
-					bubbles: true, 
-					cancelable: true, 
-					composed: true,
-					detail: detailObj
-				}
-			);
-			this.dispatchEvent(updateEvent);
+			const eventOptions = { 
+				detail: eventDetailObj 
+			};
+			this[emitEvent](UPDATE_DONE_EVENT_NAME, eventOptions);
 		}
 	}
 
@@ -424,11 +436,56 @@ class NoteList extends HTMLElement {
 		context = (context || this);
 		return new Proxy(repetitiveHandler, {
 			apply(target, thisArg, args) {
-				let delay = (args[0] || DEFAULT_DEBOUNCE_DELAY || 0);
+				let delay = Number(args[0]);
+				if(isNaN(delay)) {
+					if(typeof DEFAULT_DEBOUNCE_DELAY === 'number'){
+						delay = DEFAULT_DEBOUNCE_DELAY;
+					} else {
+						delay = 0;
+					}
+				}
 				clearTimeout(timeoutID);
 				timeoutID = setTimeout(function() { 
 					Reflect.apply(target, context, args);
 				}, delay);
+			}
+		});
+	}
+
+	[emitEvent](name, { bubbles = true, cancelable = true, composed = true, detail = {}} = {}) {
+		const event = new CustomEvent(
+			name, 
+			{ 
+				bubbles, 
+				cancelable, 
+				composed,
+				detail
+			}
+		);
+		this.dispatchEvent(event);
+	}
+
+	[mutationHandler](mutationArray) {
+		if(!mutationArray || !(mutationArray instanceof Array)) {
+			throw new TypeError(`Argument [mutationArray] must be an array: ${typeof mutationArray}`); 
+		}
+		mutationArray.forEach((mutation) => {
+			const noteType = this.notetype.toUpperCase();
+			if(noteType === mutation.target.tagName) {
+				this.update();
+				return;
+			}
+			if(mutation.type === 'childList') {
+				const mutationNodeArray = [...mutation.removedNodes, ...mutation.addedNodes];
+				mutationNodeArray.forEach((node) => {
+					if(!(node instanceof HTMLElement)) {
+						return;
+					}
+					if(noteType === node.tagName || node.querySelector(noteType)) {
+						this.update();
+						return;
+					}
+				});
 			}
 		});
 	}

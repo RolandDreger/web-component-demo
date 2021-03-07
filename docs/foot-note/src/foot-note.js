@@ -9,7 +9,7 @@
 	Author: Roland Dreger, www.rolanddreger.net
 	License: MIT
 
-	Date: 20 Feb. 2021
+	Date: 28 Feb. 2021
 */
 
 /* Configuration */
@@ -28,6 +28,7 @@ const handleClickCloseElement = Symbol('handleClickCloseElement');
 const handleKeydownDocument = Symbol('handleKeydownDocument');
 const documentLang = Symbol('documentLang');
 const translate = Symbol('translate');
+const emitEvent = Symbol('emitEvent');
 const clearUpID = Symbol('clearUpID');
 
 
@@ -65,8 +66,8 @@ class FootNote extends HTMLElement {
 			:host {
 				contain: content;
 				font-family: inherit;
-				color: #000000;
-				color: var(--footnote-font-color, #000000);
+				color: inherit;
+				color: var(--footnote-font-color, inherit);
 			}
 			:host([hidden]) {
 				display: none;
@@ -106,6 +107,7 @@ class FootNote extends HTMLElement {
 				bottom: 0;
 				left: 50%;
 				transform: translate(-50%, 100%);
+				will-change: transform;
 				flex-direction: row;
 				flex-wrap: nowrap;
 				justify-content: space-between;
@@ -252,7 +254,6 @@ class FootNote extends HTMLElement {
 		element.classList.add('element');
 		element.setAttribute('part', 'element');
 		element.setAttribute('role', 'region');
-		element.setAttribute('aria-live', 'polite');
 		element.appendChild(slot);
 
 		/* Close button */
@@ -375,13 +376,17 @@ class FootNote extends HTMLElement {
 			/* Attribute: visible */
 			case 'visible':
 				if(newValue !== null) {
-					this.areaElement.classList.add('visible');
+					window.requestAnimationFrame(() => {
+						this.areaElement.classList.add('visible');
+					});
 					this.areaElement.setAttribute('aria-hidden', "false");
 					this.closeElement.setAttribute('tabindex', '0');
 					document.addEventListener('keydown', this[handleKeydownDocument]);
 					this.areaElement.focus();
-				} else {
-					this.areaElement.classList.remove('visible');
+				} else {	
+					window.requestAnimationFrame(() => {
+						this.areaElement.classList.remove('visible');
+					});
 					this.areaElement.setAttribute('aria-hidden', "true");
 					this.closeElement.setAttribute('tabindex', '-1');
 					document.removeEventListener('keydown', this[handleKeydownDocument]);
@@ -423,18 +428,8 @@ class FootNote extends HTMLElement {
 			this.removeAttribute('visible');
 		}
 		if(this[isInternal]) {
-			const visibleChangedEvent = new CustomEvent(
-				VISIBLE_CHANGED_EVENT_NAME, 
-				{ 
-					bubbles: true,
-					cancelable: true,
-					composed: true,
-					detail: { 
-						visible: this.visible
-					}
-				}
-			);
-			this.dispatchEvent(visibleChangedEvent);
+			const eventOptions = { detail: { visible: this.visible } };
+			this[emitEvent](VISIBLE_CHANGED_EVENT_NAME, eventOptions);
 		}
 	}
 
@@ -444,6 +439,7 @@ class FootNote extends HTMLElement {
 			document.body.getAttribute("lang") ||
 			document.documentElement.getAttribute("xml:lang") || 
 			document.documentElement.getAttribute("lang") || 
+			window.navigator.language ||
 			FALLBACK_LANG
 		);
 	}
@@ -586,6 +582,19 @@ class FootNote extends HTMLElement {
 		}
 
 		return translation;
+	}
+
+	[emitEvent](name, { bubbles = true, cancelable = true, composed = true, detail = {}} = {}) {
+		const event = new CustomEvent(
+			name, 
+			{ 
+				bubbles, 
+				cancelable, 
+				composed,
+				detail
+			}
+		);
+		this.dispatchEvent(event);
 	}
 
 	[clearUpID](input) {
